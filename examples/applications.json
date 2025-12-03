@@ -1,0 +1,25 @@
+{
+  "applications": [
+    {
+      "name": "app-frontend",
+      "project": "default",
+      "path": "kubernetes/manifests",
+      "repoUrl": "https://github.com/myorg/app-frontend",
+      "targetRevision": "main"
+    },
+    {
+      "name": "app-backend",
+      "project": "default",
+      "path": "kubernetes/manifests",
+      "repoUrl": "https://github.com/myorg/app-backend",
+      "targetRevision": "main"
+    },
+    {
+      "name": "app-worker",
+      "project": "platform",
+      "path": "k8s/overlays/production",
+      "repoUrl": "https://github.com/myorg/app-worker",
+      "targetRevision": "release/v2.0"
+    }
+  ]
+}
