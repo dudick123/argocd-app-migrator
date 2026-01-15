@@ -1,135 +1,99 @@
-# Overview
+# CLAUDE.md
 
-This is a CLI tool that scans an input directory for ArgoCD Application YAML manifests, extracts relevant information, and generates JSON configuration files for new ApplicationSets using Git Generators. The current TODO list at the bottom of this document outlines the steps needed to complete the implementation.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## NEVER EVER DO THE FOLLOWING
+## Overview
 
-These rules are ABSOLUTE:
+A CLI tool that migrates ArgoCD Application YAML manifests to JSON configuration files for ApplicationSets using Git Generators.
 
-### NEVER Publish Sensitive Data
-
-- NEVER publish passwords, API keys, tokens to git/npm/docker
-- Before ANY commit: verify no secrets included
-
-### NEVER Commit .env Files
-
-- NEVER commit `.env` to git
-- ALWAYS verify `.env` is in `.gitignore`
-
-### NEVER Hardcode Credentials
-
-- ALWAYS use environment variables
-
-## Best Practices
-
-### Required Structure
-
-project/
-├── src/
-├── tests/
-├── docs/
-├── .claude/commands/
-└── scripts/
-
-### Required Files (Create Immediately If Missing)
-
-- `.env` — Environment variables (NEVER commit)
-- `.env.example` — Template with placeholder values
-- `.gitignore` — Must include: .env, .env.*, node_modules/, dist/, .claude/
-- `.dockerignore` — Must include: .env, .git/, node_modules/
-- `README.md` — Project overview (reference env vars, don't hardcode)
-
-### Python Project Best Practices To Follow
-
-- Create `pyproject.toml` (not setup.py)
-- Use `src/` layout
-- Include `requirements.txt` AND `requirements-dev.txt`
-- Add `.python-version` file
-- Use `uv` for package management
-- Use `typer` for CLI interfaces
-- Use `rich` for enhanced terminal output and logging
-- Include type hints and use `mypy` for type checking
-- Write unit tests with `pytest` and achieve high test coverage
-- Use `black` for code formatting
-- Use `isort` for import sorting
-- Use `flake8` for linting
-- Include a `tests/` directory with test cases
-- Set up CI/CD pipelines for automated testing and deployment
-
-### Docker Best Practices To Follow
-
-- Use official, hardened base images
-- Multi-stage builds ALWAYS
-- Never run as root (use non-root user)
-- Include health checks
-- `.dockerignore` must mirror `.gitignore` + include `.git/`
-
-## Quality Requirements
-
-### File Size Limits
-
-- No file > 300 lines (split if larger)
-- No function > 50 lines
-
-### Required Before Commit
-
-- All tests pass
-- Python runs with no errors
-- Linter passes with no warnings
-- No secrets in staged files
-
-### CI/CD Requirements
-
-The project must include:
-
-- `.github/workflows/ci.yml` for GitHub Actions
-- Pre-commit hooks via pre-commit for Python)
-
-## Example Files
-
-Example ApplicationSet YAML files can be found in the `io-artifact-examples` directories. The following directories contain sample manifests for input validation and testing:
-
-- `io-artifact-examples/applicationset-generator-config` - Contains an example JSON file that will be the result of a migration.
-- `io-artifact-examples/argocd-application-sets` - Contains various ApplicationSet YAML files that implement a Git Generator.
-- `io-artifact-examples/argocd-applications` - Contains ArgoCD Application YAML files that that will be converted to a JSON configuration for new ApplicationSets.
+**Migration Flow:**
+1. ArgoCD Application YAML → 2. Parse & Extract → 3. JSON Config → 4. Validate → 5. Output
 
 ## Tech Stack
 
-- Python 3.12+
-- UV for package management
-- Typer for CLI interface
-- PyYAML for YAML parsing
-- Rich for enhanced terminal output and logging
-- jsonschema for JSON Schema validation
+- **Python 3.12+** with UV package manager
+- **CLI:** Typer with Rich for terminal output
+- **Parsing:** PyYAML for YAML processing
+- **Validation:** jsonschema (Draft7Validator)
 
-## Basic Data Flow
+## Project Structure
 
-1. Read a directory path from command-line input.
-2. Scan the directory for ArgoCD Application YAML files. If specified, scan recursively.
-3. Parse each YAML file to ensure it is a valid ArgoCD Application and extract relevant fields.
-4. For each Application, found in the directory, generate a JSON array element configuration that can be used to create a new ApplicationSet using a Git Generator.
-5. Validate the generated JSON against a predefined JSON Schema.
-6. In dry-run mode, output the generated JSON to the terminal without writing files.
-7. In normal mode, write the generated JSON configuration to an output file.
-8. Output migration statistics to the terminal.
+- `src/` - Main source code (use src layout)
+- `tests/` - Pytest test cases
+- `io-artifact-examples/` - Sample input/output files for testing:
+  - `argocd-applications/` - Input: Application YAML files to migrate
+  - `applicationset-generator-config/` - Output: Example JSON config format
+  - `argocd-application-sets/` - Reference: ApplicationSet YAML examples
+- `TODO.md` - Progressive task list (mark `[x]` when complete)
 
-## Architecture & Data Flow
+## Code Quality Requirements
 
-- The CLI will use a pipeline pattern with components for scanning, parsing, migrating, and validating ArgoCD Application manifests.
-- The Scanner module will recursively find ArgoCD Applications in `*.yaml`/`*.yml` files based on an input parameter specifying the directory.
-- The Parser module will extract ArgoCD Application fields from YAML files.
-- The Migrator module will generate JSON configs per ArgoCD Application.
-- The Validator module will validate the generated JSON against a predefined JSON Schema using Draft7Validator
+- Files ≤ 300 lines, functions ≤ 50 lines
+- Type hints required (enforce with mypy)
+- Format with black, sort imports with isort, lint with flake8
+- High test coverage with pytest
+- No commits without: tests passing, linter clean, no secrets
 
-## Key Business Rules
+## Architecture: Pipeline Pattern
 
-- There should be a 1:1 mapping between ArgoCD Application YAML files and generated JSON configuration files.
-- The CLI should skip any Application YAML files that are not valid ArgoCD Applications.
+The tool uses a 4-stage pipeline:
 
-## Project To Do
+1. **Scanner** - Find `*.yaml`/`*.yml` files (recursive option available)
+2. **Parser** - Extract fields from valid ArgoCD Applications, skip invalid files
+3. **Migrator** - Transform to JSON config (1:1 mapping per Application)
+4. **Validator** - Validate against JSON Schema (Draft7Validator)
 
-- The TODO list for completing the implementation of this CLI tool is contained in the [TODO.md](TODO.md) file. When an item is completed, mark it as done by changing `[ ]` to `[x]`.
-- TODO items will be exposed progressively as individual tasks to be completed. Additional details and requirements for each TODO item will be provided as needed.
-- TODO items should be implemented using basic functionality, then add advanced options like custom output paths, logging levels, etc.
-- Additional functionality should not be added until placed on the TODO list.
-- Additional functionality may be added as the project evolves.
+### Input Example (ArgoCD Application)
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: example-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/org/repo.git
+    targetRevision: main
+    path: ./manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+```
+
+### Output Example (JSON Config)
+```json
+[{
+  "metadata": {
+    "name": "example-app",
+    "annotations": {"syncWave": "40"},
+    "labels": {"environment": "dev", "team": "platform"}
+  },
+  "project": "default",
+  "source": {
+    "repoURL": "https://github.com/org/repo.git",
+    "revision": "main",
+    "manifestPath": "./manifests",
+    "directory": {"recurse": true}
+  },
+  "destination": {
+    "clusterName": "prod-cluster",
+    "namespace": "default"
+  },
+  "enableSyncPolicy": false
+}]
+```
+
+## CLI Modes
+
+- **Dry-run mode:** Print JSON to terminal without writing files
+- **Normal mode:** Write JSON files and show migration statistics
+
+## Development Workflow
+
+Tasks are tracked in [TODO.md](TODO.md):
+- Mark completed tasks: `[ ]` → `[x]`
+- Implement basic functionality first, then add advanced options
+- Only add features listed in TODO.md
+- New tasks will be added progressively as work continues
