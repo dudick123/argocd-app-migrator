@@ -203,4 +203,68 @@ class TestOutputMessages:
         result = cli_runner.invoke(app, ["--input-dir", str(sample_input_dir)])
 
         assert result.exit_code == 0
-        assert "initialized successfully" in result.stdout or "✓" in result.stdout
+        # With Scanner, we no longer show "initialized successfully"
+        assert "Scan Results" in result.stdout or "Found" in result.stdout
+
+
+class TestScannerIntegration:
+    """Test Scanner integration with CLI."""
+
+    def test_cli_displays_yaml_file_count(
+        self, cli_runner: CliRunner, sample_input_dir: Path
+    ) -> None:
+        """Test CLI displays count of YAML files found."""
+        result = cli_runner.invoke(app, ["-i", str(sample_input_dir)])
+
+        assert result.exit_code == 0
+        assert "Scan Results:" in result.stdout
+        assert "Found" in result.stdout
+        assert "YAML file(s)" in result.stdout
+
+    def test_cli_dry_run_shows_found_files(
+        self, cli_runner: CliRunner, sample_input_dir: Path
+    ) -> None:
+        """Test CLI dry-run mode displays found YAML files."""
+        result = cli_runner.invoke(app, ["-i", str(sample_input_dir), "--dry-run"])
+
+        assert result.exit_code == 0
+        assert "YAML Files Found:" in result.stdout
+        assert "app-1.yaml" in result.stdout
+
+    def test_cli_warns_when_no_yaml_files(
+        self, cli_runner: CliRunner, empty_dir: Path
+    ) -> None:
+        """Test CLI displays warning when no YAML files found."""
+        result = cli_runner.invoke(app, ["-i", str(empty_dir)])
+
+        assert result.exit_code == 0
+        assert "Found 0 YAML file(s)" in result.stdout
+        assert "Warning" in result.stdout
+        assert "No YAML files found" in result.stdout
+
+    def test_cli_recursive_scan_finds_nested_files(
+        self, cli_runner: CliRunner, nested_input_dir: Path
+    ) -> None:
+        """Test CLI recursive scan finds files in subdirectories."""
+        result = cli_runner.invoke(
+            app, ["-i", str(nested_input_dir), "--recursive", "--dry-run"]
+        )
+
+        assert result.exit_code == 0
+        assert "Found 3 YAML file(s)" in result.stdout
+        # Should find files at all levels
+        assert "app-root.yaml" in result.stdout
+        assert "app-l1.yaml" in result.stdout
+        assert "app-l2.yaml" in result.stdout
+
+    def test_cli_non_recursive_finds_root_only(
+        self, cli_runner: CliRunner, nested_input_dir: Path
+    ) -> None:
+        """Test CLI non-recursive scan only finds root files."""
+        result = cli_runner.invoke(app, ["-i", str(nested_input_dir), "--dry-run"])
+
+        assert result.exit_code == 0
+        assert "Found 1 YAML file(s)" in result.stdout
+        assert "app-root.yaml" in result.stdout
+        # Should NOT find nested files
+        assert "app-l1.yaml" not in result.stdout

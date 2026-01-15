@@ -7,8 +7,8 @@
 
 ## Next Steps (Pipeline Implementation)
 
-[ ] Implement Scanner module to find YAML files
+[x] Implement Scanner module to find YAML files
 [ ] Implement Parser module to extract ArgoCD Application fields
 [ ] Implement Migrator module to generate JSON configs
 [ ] Implement Validator module to validate against JSON Schema
-[ ] Integrate pipeline into CLI
+[ ] Integrate remaining pipeline stages into CLI

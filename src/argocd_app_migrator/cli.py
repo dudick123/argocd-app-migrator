@@ -7,6 +7,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from argocd_app_migrator.scanner import Scanner, ScannerError
 from argocd_app_migrator.version import __version__
 
 # Initialize Typer app
@@ -117,14 +118,35 @@ def migrate(
     console.print(f"  Dry Run: [cyan]{dry_run}[/cyan]")
     console.print(f"  Output Directory: [cyan]{output_dir}[/cyan]")
 
-    # Placeholder for future pipeline implementation
-    console.print("\n[yellow]Note:[/yellow] Pipeline implementation coming soon!")
-    console.print("  - Scanner: Find YAML files")
-    console.print("  - Parser: Extract Application data")
-    console.print("  - Migrator: Generate JSON configs")
-    console.print("  - Validator: Validate against schema")
+    # Scanner: Find YAML files
+    try:
+        scanner = Scanner()
+        yaml_files = scanner.scan(input_dir=input_dir, recursive=recursive)
 
-    console.print("\n[bold green]✓[/bold green] CLI shell initialized successfully!")
+        console.print("\n[bold]Scan Results:[/bold]")
+        console.print(f"  Found {len(yaml_files)} YAML file(s)")
+
+        if len(yaml_files) == 0:
+            console.print(
+                "[yellow]Warning:[/yellow] No YAML files found in input directory"
+            )
+            return
+
+        # Display files in dry-run mode
+        if dry_run:
+            console.print("\n[bold]YAML Files Found:[/bold]")
+            for yaml_file in yaml_files:
+                console.print(f"  - {yaml_file}")
+
+        # Placeholder for next pipeline stages
+        console.print("\n[yellow]Note:[/yellow] Parser implementation coming next!")
+        console.print("  - Parser: Extract Application data")
+        console.print("  - Migrator: Generate JSON configs")
+        console.print("  - Validator: Validate against schema")
+
+    except ScannerError as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

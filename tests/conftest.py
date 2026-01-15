@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from argocd_app_migrator.scanner import Scanner
+
 
 @pytest.fixture
 def cli_runner() -> CliRunner:
@@ -70,3 +72,51 @@ def nested_input_dir(tmp_path: Path) -> Path:
     )
 
     return base
+
+
+@pytest.fixture
+def scanner() -> Scanner:
+    """Provide a Scanner instance for testing."""
+    return Scanner()
+
+
+@pytest.fixture
+def empty_dir(tmp_path: Path) -> Path:
+    """Create an empty directory for testing."""
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    return empty
+
+
+@pytest.fixture
+def yaml_files_dir(tmp_path: Path) -> Path:
+    """Create a directory with .yaml and .yml files."""
+    yaml_dir = tmp_path / "yaml_files"
+    yaml_dir.mkdir()
+
+    # Create files with .yaml extension
+    (yaml_dir / "app1.yaml").write_text("apiVersion: argoproj.io/v1alpha1\n")
+    (yaml_dir / "app2.yaml").write_text("kind: Application\n")
+
+    # Create files with .yml extension
+    (yaml_dir / "app3.yml").write_text("metadata:\n  name: test\n")
+
+    return yaml_dir
+
+
+@pytest.fixture
+def mixed_files_dir(tmp_path: Path) -> Path:
+    """Create a directory with YAML and non-YAML files."""
+    mixed = tmp_path / "mixed"
+    mixed.mkdir()
+
+    # YAML files
+    (mixed / "config.yaml").write_text("key: value\n")
+    (mixed / "app.yml").write_text("app: test\n")
+
+    # Non-YAML files
+    (mixed / "readme.txt").write_text("This is a readme\n")
+    (mixed / "script.py").write_text("print('hello')\n")
+    (mixed / "data.json").write_text('{"key": "value"}\n')
+
+    return mixed
