@@ -1,0 +1,32 @@
+[
+    {
+        "metadata": {
+            "name": "tenant-app-dev",
+            "annotations": {
+                "enablePrune": false,
+                "syncWave": "0"
+            },
+            "labels": {
+                "region": "westus3",
+                "environment": "pre",
+                "team": "team-awesome",
+                "app": "tenant-app",
+                "catalog": "system"
+            }
+        },
+        "project": "system-gitops-pre",
+        "source": {
+            "repoURL": "https://dev.azure.com/foo-org/bar-project/_git/argo-biz-apps",
+            "revision": "main",
+            "manifestPath": "manifests/dev/tenants",
+            "directory": {
+                "recurse": true
+            }
+        },
+        "destination": {
+            "clusterName": "foo-gitops-dev",
+            "namespace": "system-gitops-dev"
+        },
+        "enableSyncPolicy": false
+    }
+]

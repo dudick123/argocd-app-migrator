@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: example-appset
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: parent-bootstrap-appset
+    app.kubernetes.io/instance: argocd-applicationset
+    app.kubernetes.io/component: parent-applicationset
+    app.kubernetes.io/part-of: example-bootstrap
+    gitops.example.com/bootstrap-role: "parent"
+    gitops.example.com/bootstrap-app: "true"
+  annotations:
+    argocd.argoproj.io/enable-prune: "false"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/your-org/appset-config.git
+        revision: main
+        files:
+          - path: "config/app-config.json"
+  template:
+    metadata:
+      name: '{{.metadata.name}}'
+      annotations:
+        argocd.argoproj.io/enable-prune: 'false'
+        argocd.argoproj.io/sync-wave: '{{.metadata.annotations.syncWave}}'
+      labels:
+        app.kubernetes.io/instance: argocd-application
+        app.kubernetes.io/component: child-application
+        app.kubernetes.io/part-of: example-bootstrap
+        gitops.example.com/bootstrap-role: "child"
+        gitops.example.com/bootstrap-app: "true"
+        gitops.example.com/region: '{{.metadata.labels.region}}'
+        gitops.example.com/environment: '{{.metadata.labels.environment}}'
+        gitops.example.com/team: '{{.metadata.labels.team}}'
+        gitops.example.com/app: '{{.metadata.labels.app}}'
+        gitops.example.com/catalog: '{{.metadata.labels.catalog}}'
+    spec:
+      project: '{{.project}}'
+      source:
+        repoURL: '{{.source.repoURL}}'
+        targetRevision: '{{.source.revision}}'
+        path: '{{.source.manifestPath}}'
+        directory:
+          recurse: true
+      destination:
+        name: '{{.destination.clusterName}}'
+        namespace: '{{.destination.namespace}}'
+      # Sync policy controls how ArgoCD synchronizes changes
+      # NOTE: This section could be templated with conditional logic
+      # e.g.: {{- if .enableSyncPolicy }}
+      # syncPolicy:
+      #   automated:
+      #     selfHeal: true
+      #     prune: true
+      #     allowEmpty: true
+  templatePatch: |
+    spec:
+      source:
+        directory:
+          recurse: {{ .source.directory.recurse | default false }}
