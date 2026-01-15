@@ -7,6 +7,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from argocd_app_migrator.parser import Parser, ParserError
 from argocd_app_migrator.scanner import Scanner, ScannerError
 from argocd_app_migrator.version import __version__
 
@@ -138,13 +139,45 @@ def migrate(
             for yaml_file in yaml_files:
                 console.print(f"  - {yaml_file}")
 
-        # Placeholder for next pipeline stages
-        console.print("\n[yellow]Note:[/yellow] Parser implementation coming next!")
-        console.print("  - Parser: Extract Application data")
+        # Parser: Extract Application data
+        parser = Parser()
+        parse_results = parser.parse_batch(yaml_files)
+
+        # Separate successful and failed parses
+        successful = [r for r in parse_results if r.success]
+        failed = [r for r in parse_results if not r.success]
+
+        console.print("\n[bold]Parse Results:[/bold]")
+        console.print(f"  Successfully parsed: {len(successful)}")
+        console.print(f"  Failed to parse: {len(failed)}")
+
+        # Display failed files
+        if failed:
+            console.print("\n[bold yellow]Failed Files:[/bold yellow]")
+            for result in failed:
+                console.print(f"  - {result.file_path.name}")
+                if dry_run:
+                    console.print(f"    Error: {result.error_message}")
+
+        # Display successful parses in dry-run mode
+        if successful and dry_run:
+            console.print("\n[bold green]Successfully Parsed:[/bold green]")
+            for result in successful:
+                console.print(f"  - {result.file_path.name}")
+                console.print(f"    App: {result.data.metadata.name}")
+                console.print(f"    Project: {result.data.project}")
+
+        # Stop if no valid applications found
+        if len(successful) == 0:
+            console.print("\n[yellow]No valid ArgoCD Applications found[/yellow]")
+            return
+
+        # Placeholder for Migrator stage
+        console.print("\n[yellow]Note:[/yellow] Migrator implementation coming next!")
         console.print("  - Migrator: Generate JSON configs")
         console.print("  - Validator: Validate against schema")
 
-    except ScannerError as e:
+    except (ScannerError, ParserError) as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(code=1)
 
